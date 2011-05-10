@@ -19,6 +19,6 @@ def build(bld):
   bld.add_group("ext")
   ext = bld.new_task_gen("cxx", "shlib", "node_addon")
   ext.cxxflags = ["-I../deps", "-g", "-Wall"]
-  ext.source = "vec.cc bitvec.cc intvec.cc"
+  ext.source = "vec.cc bitvec.cc intvec.cc floatvec.cc"
   ext.target = "vec"
 

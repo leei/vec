@@ -8,6 +8,7 @@
 
 #include "bitvec.h"
 #include "intvec.h"
+#include "floatvec.h"
 
 using namespace node;
 using namespace v8;
@@ -17,6 +18,7 @@ extern "C" {
   {
     BitVec::Init(target);
     IntVec::Init(target);
+    FloatVec::Init(target);
   }
 
   NODE_MODULE(vec, init);
