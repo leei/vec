@@ -65,9 +65,9 @@ BitVec::get(int idx)
 uint32_t
 BitVec::set(int idx, bool value)
 {
-  if (idx <= length || value) {
+  if (idx < length || value) {
     uint32_t word = idx/32, mask = (1) << (idx%32);
-    extend(idx);
+    extend(idx+1);
 
     if (value) {
       vec[word] |= mask;
