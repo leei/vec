@@ -11,15 +11,16 @@ using namespace v8;
 
 class BitVec: ObjectWrap
 {
-private:
-  int32_t length;
+ private:
+  int32_t length;   // Length of the vector in bits
+  int32_t word_len; // Length of the vector in uint32_t words
   uint32_t *vec;
 
-public:
+ public:
 
   static void Init(Handle<Object> target);
 
- BitVec() : length(0), vec(0) {}
+  BitVec() : length(0), word_len(0), vec(0) {}
   ~BitVec();
 
   // Prototype methods.

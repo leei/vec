@@ -137,22 +137,21 @@ BitVec::ToString(const Arguments& args)
 
 void
 BitVec::extend(int32_t len) {
-  if (len < length) {
+  int32_t new_word_len = (len+31)/32;
+  if (new_word_len <= word_len) {
     return;
-  } else {
-    uint32_t word_len = (len+31)/32;
-
-    if (vec) {
-      vec = (uint32_t *) realloc(vec, word_len * sizeof(uint32_t));
-      uint32_t prev_len = length/32;
-      bzero(vec + prev_len, (word_len - prev_len) * sizeof(uint32_t));
-    } else {
-      vec = (uint32_t *) calloc(word_len, sizeof(uint32_t));
-    }
-
-    //fprintf(stderr, "bitvec: extend %d -> %d\n", length, word_len*32);
-    length = word_len * 32;
   }
+
+  if (vec) {
+    vec = (uint32_t *) realloc(vec, new_word_len * sizeof(uint32_t));
+    bzero(vec + word_len, (new_word_len - word_len) * sizeof(uint32_t));
+  } else {
+    vec = (uint32_t *) calloc(new_word_len, sizeof(uint32_t));
+  }
+
+  //fprintf(stderr, "bitvec: extend %d -> %d\n", length, word_len*32);
+  length = len;
+  word_len = new_word_len;
 }
 
 /*

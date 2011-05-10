@@ -72,7 +72,7 @@ suite.addBatch({
     },
 
     'is properly initialized': function(v) {
-      assert.equal(v.toString().substr(0,4), "lll1");
+      assert.equal(v.toString(), "lll1");
     },
 
     'can be mapped': {
@@ -111,7 +111,7 @@ suite.addBatch({
     },
 
     'returns the string for toString()': function(bitvec) {
-      assert.equal(bitvec.toString().substr(0,str.length), str);
+      assert.equal(bitvec.toString(), str);
     }
   }
   suite.addBatch(batch);
