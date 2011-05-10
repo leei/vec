@@ -13,15 +13,14 @@ suite.addBatch({
       assert.equal(intvec.length, 0);
     },
 
-    'and returns false for all gets': function(intvec) {
-      assert.equal(intvec.get(0), 0);
-      assert.equal(intvec.get(1000), 0);
-      assert.equal(intvec.get(-1), 0);
+    'returns zero for all gets': function(intvec) {
+      assert.equal(intvec[0], 0);
+      assert.equal(intvec[1000], 0);
     },
 
-    'on set': {
+    'after set': {
       topic: function(intvec) {
-        return intvec.set(120, 12);
+        return intvec[120] = 12;
       },
 
       'returns the value': function(val) {
@@ -36,12 +35,12 @@ suite.addBatch({
         },
 
         'returns the set value': function(intvec) {
-          assert.equal(intvec.get(120), 12);
+          assert.equal(intvec[120], 12);
         },
 
         'intervening values are still zero': function(intvec) {
-          assert.equal(intvec.get(0), 0);
-          assert.equal(intvec.get(119), 0);
+          assert.equal(intvec[0], 0);
+          assert.equal(intvec[119], 0);
         }
       }
     }
@@ -59,9 +58,8 @@ suite.addBatch({
     },
 
     'and returns false for all gets': function(intvec) {
-      assert.equal(intvec.get(0), 0);
-      assert.equal(intvec.get(1000), 0);
-      assert.equal(intvec.get(-1), 0);
+      assert.equal(intvec[0], 0);
+      assert.equal(intvec[1000], 0);
     }
   }
 });
@@ -70,7 +68,7 @@ suite.addBatch({
   'an intvec initialized with sequence': {
     topic: function() {
       var v = new vec.IntVec(20);
-      for (var i = 0; i < 20; ++i) { v.set(i, i+1); }
+      for (var i = 0; i < 20; ++i) { v[i] = i+1; }
       return v;
     },
 
@@ -115,8 +113,7 @@ suite.addBatch({
     },
 
     'and returns zero for other gets': function(intvec) {
-      assert.equal(intvec.get(1000), 0);
-      assert.equal(intvec.get(-1), 0);
+      assert.equal(intvec[1000], 0);
     }
   };
 
@@ -127,7 +124,7 @@ suite.addBatch({
   'an intvec with [2] = 3': {
     topic: function() {
       var v = new vec.IntVec();
-      v.set(2, 3);
+      v[2] = 3;
       return v;
     },
 

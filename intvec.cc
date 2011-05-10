@@ -65,7 +65,7 @@ IntVec::get(int idx)
 }
 
 int32_t
-IntVec::set(int idx, int32_t value)
+IntVec::set(uint32_t idx, int32_t value)
 {
   if (idx < length || value) {
     extend(idx+1);
@@ -105,7 +105,7 @@ IntVec::ToString(const Arguments& args)
   Local<String> rep = String::New(""), sep = String::NewSymbol(",");
 
   char buffer[16];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     int32_t val = hw->vec[i];
     if (i > 0) { rep = String::Concat(rep, sep); }
     sprintf(buffer, "%d", val);
@@ -117,7 +117,7 @@ IntVec::ToString(const Arguments& args)
 }
 
 void
-IntVec::extend(int32_t len) {
+IntVec::extend(uint32_t len) {
   if (len < length) {
     return;
   } else {
@@ -141,47 +141,33 @@ IntVec::extend(int32_t len) {
  * simply return false.
  */
 Handle<Value>
-IntVec::Get(const Arguments& args)
+IntVec::IndexGet(uint32_t idx, const AccessorInfo& info)
 {
-  if (! args[0]->IsInt32()) {
-    return ThrowException(Exception::TypeError(String::New("Bad argument")));
-  }
+  IntVec* hw = ObjectWrap::Unwrap<IntVec>(info.This());
 
-  int32_t idx = args[0]->Int32Value();
-  HandleScope scope;
-  IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
+  int32_t retval = (idx >= hw->length ? 0 : hw->get(idx));
+  //fprintf(stderr, "intvec: IndexGet(%d) => %d\n", idx, retval);
 
-  if (idx < 0 || idx >= hw->length) {
-    return scope.Close(Integer::New(0));
-  } else {
-    return scope.Close(Integer::New(hw->get(idx)));
-  }
+  return Integer::New(retval);
 }
-
 
 /*
  * Set the value of the bit at [idx] to this value. Out of range values,
  * extend the array.
  */
 Handle<Value>
-IntVec::Set(const Arguments& args)
+IntVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 {
-  if (! args[0]->IsInt32() || ! args[1]->IsInt32()) {
-    return ThrowException(Exception::TypeError(String::New("Bad argument")));
-  }
-
-  int32_t idx = args[0]->Int32Value();
-  int32_t value = args[1]->Int32Value();
-
   if (idx < 0) {
     return ThrowException(Exception::TypeError(String::New("Bad argument")));
   }
 
-  HandleScope scope;
-  IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
+  IntVec* hw = ObjectWrap::Unwrap<IntVec>(info.This());
 
-  int32_t b = hw->set(idx, value);
-  return scope.Close(Integer::New(b));
+  //fprintf(stderr, "intvec: IndexSet(%d, %d)\n", idx, value->Int32Value());
+
+  hw->set(idx, value->Int32Value());
+  return value;
 }
 
 Handle<Value>
@@ -200,7 +186,7 @@ IntVec::Map(const Arguments& args)
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[1];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     argv[0] = Int32::New(hw->vec[i]);
     retval->Set(i, cb->Call(global, 1, argv));
   }
@@ -226,7 +212,7 @@ IntVec::Reduce(const Arguments& args)
 
   Local<Value> argv[2];
   argv[0] = args[0];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     argv[1] = Int32::New(hw->vec[i]);
     argv[0] = cb->Call(global, 2, argv);
   }
@@ -245,12 +231,12 @@ IntVec::Init(Handle<Object> target)
   s_ct->InstanceTemplate()->SetInternalFieldCount(1);
   s_ct->SetClassName(String::NewSymbol("IntVec"));
 
-  NODE_SET_PROTOTYPE_METHOD(s_ct, "get", Get);
-  NODE_SET_PROTOTYPE_METHOD(s_ct, "set", Set);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "toString", ToString);
 
   NODE_SET_PROTOTYPE_METHOD(s_ct, "map", Map);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "reduce", Reduce);
+
+  s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
 
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
 

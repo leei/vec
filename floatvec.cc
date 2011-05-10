@@ -59,13 +59,13 @@ FloatVec::GetLength(Local<String> property, const AccessorInfo& info)
 }
 
 float
-FloatVec::get(int idx)
+FloatVec::get(uint32_t idx)
 {
   return vec[idx];
 }
 
 float
-FloatVec::set(int idx, float value)
+FloatVec::set(uint32_t idx, float value)
 {
   if (idx < length || value) {
     extend(idx+1);
@@ -105,7 +105,7 @@ FloatVec::ToString(const Arguments& args)
   Local<String> rep = String::New(""), sep = String::NewSymbol(",");
 
   char buffer[16];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     float val = hw->vec[i];
     if (i > 0) { rep = String::Concat(rep, sep); }
     sprintf(buffer, "%g", val);
@@ -117,7 +117,7 @@ FloatVec::ToString(const Arguments& args)
 }
 
 void
-FloatVec::extend(int32_t len) {
+FloatVec::extend(uint32_t len) {
   if (len < length) {
     return;
   } else {
@@ -138,50 +138,36 @@ FloatVec::extend(int32_t len) {
 
 /*
  * Get the value of the bit at [idx] of this vector.  Out of range values,
- * simply return false.
+ * simply return zero.
  */
 Handle<Value>
-FloatVec::Get(const Arguments& args)
+FloatVec::IndexGet(uint32_t idx, const AccessorInfo& info)
 {
-  if (! args[0]->IsInt32()) {
-    return ThrowException(Exception::TypeError(String::New("Bad argument")));
-  }
+  FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(info.This());
 
-  int32_t idx = args[0]->Int32Value();
-  HandleScope scope;
-  FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(args.This());
+  float retval = (idx >= hw->length ? 0 : hw->get(idx));
+  //fprintf(stderr, "intvec: IndexGet(%d) => %d\n", idx, retval);
 
-  if (idx < 0 || idx >= hw->length) {
-    return scope.Close(Integer::New(0));
-  } else {
-    return scope.Close(Integer::New(hw->get(idx)));
-  }
+  return Number::New(retval);
 }
-
 
 /*
  * Set the value of the bit at [idx] to this value. Out of range values,
  * extend the array.
  */
 Handle<Value>
-FloatVec::Set(const Arguments& args)
+FloatVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 {
-  if (! args[0]->IsInt32() || ! args[1]->IsNumber()) {
-    return ThrowException(Exception::TypeError(String::New("Bad argument")));
-  }
-
-  int32_t idx = args[0]->Int32Value();
-  float value = args[1]->NumberValue();
-
   if (idx < 0) {
     return ThrowException(Exception::TypeError(String::New("Bad argument")));
   }
 
-  HandleScope scope;
-  FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(args.This());
+  FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(info.This());
 
-  float b = hw->set(idx, value);
-  return scope.Close(Number::New(b));
+  //fprintf(stderr, "intvec: IndexSet(%d, %d)\n", idx, value->Int32Value());
+
+  hw->set(idx, value->NumberValue());
+  return value;
 }
 
 Handle<Value>
@@ -200,7 +186,7 @@ FloatVec::Map(const Arguments& args)
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[1];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     argv[0] = Number::New(hw->vec[i]);
     retval->Set(i, cb->Call(global, 1, argv));
   }
@@ -226,7 +212,7 @@ FloatVec::Reduce(const Arguments& args)
 
   Local<Value> argv[2];
   argv[0] = args[0];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     argv[1] = Number::New(hw->vec[i]);
     argv[0] = cb->Call(global, 2, argv);
   }
@@ -245,13 +231,12 @@ FloatVec::Init(Handle<Object> target)
   s_ct->InstanceTemplate()->SetInternalFieldCount(1);
   s_ct->SetClassName(String::NewSymbol("FloatVec"));
 
-  NODE_SET_PROTOTYPE_METHOD(s_ct, "get", Get);
-  NODE_SET_PROTOTYPE_METHOD(s_ct, "set", Set);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "toString", ToString);
 
   NODE_SET_PROTOTYPE_METHOD(s_ct, "map", Map);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "reduce", Reduce);
 
+  s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
 
   target->Set(String::NewSymbol("FloatVec"), s_ct->GetFunction());

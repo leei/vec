@@ -4,24 +4,23 @@ var vec = require("../build/default/vec");
 var suite = vows.describe("FloatVec");
 
 suite.addBatch({
-  'an intvec': {
+  'a floatvec': {
     topic: function() {
       return new vec.FloatVec();
     },
 
-    'is initially empty': function(intvec) {
-      assert.equal(intvec.length, 0);
+    'is initially empty': function(v) {
+      assert.equal(v.length, 0);
     },
 
-    'and returns false for all gets': function(intvec) {
-      assert.equal(intvec.get(0), 0);
-      assert.equal(intvec.get(1000), 0);
-      assert.equal(intvec.get(-1), 0);
+    'and returns false for all gets': function(v) {
+      assert.equal(v[0], 0);
+      assert.equal(v[1000], 0);
     },
 
     'on set': {
-      topic: function(intvec) {
-        return intvec.set(120, 12);
+      topic: function(v) {
+        return v[120] = 12;
       },
 
       'returns the value': function(val) {
@@ -29,19 +28,19 @@ suite.addBatch({
       },
 
       'and': {
-        topic: function(val, intvec) { return intvec; },
+        topic: function(val, v) { return v; },
 
-        'has length = index+1': function(intvec) {
-          assert.equal(intvec.length, 121);
+        'has length = index+1': function(v) {
+          assert.equal(v.length, 121);
         },
 
-        'returns the set value': function(intvec) {
-          assert.equal(intvec.get(120), 12);
+        'returns the set value': function(v) {
+          assert.equal(v[120], 12);
         },
 
-        'intervening values are still zero': function(intvec) {
-          assert.equal(intvec.get(0), 0);
-          assert.equal(intvec.get(119), 0);
+        'intervening values are still zero': function(v) {
+          assert.equal(v[0], 0);
+          assert.equal(v[119], 0);
         }
       }
     }
@@ -49,19 +48,18 @@ suite.addBatch({
 });
 
 suite.addBatch({
-  'an intvec initialized with a length': {
+  'a floatvec initialized with a length': {
     topic: function() {
       return new vec.FloatVec(100);
     },
 
-    'has length >= initialized value': function(intvec) {
-      assert.equal(intvec.length, 100);
+    'has length >= initialized value': function(v) {
+      assert.equal(v.length, 100);
     },
 
-    'and returns false for all gets': function(intvec) {
-      assert.equal(intvec.get(0), 0);
-      assert.equal(intvec.get(1000), 0);
-      assert.equal(intvec.get(-1), 0);
+    'and returns false for all gets': function(v) {
+      assert.equal(v[0], 0);
+      assert.equal(v[1000], 0);
     }
   }
 });
@@ -70,12 +68,12 @@ suite.addBatch({
   'a floatvec initialized with sequence': {
     topic: function() {
       var v = new vec.FloatVec(20);
-      for (var i = 0; i < 20; ++i) { v.set(i, i+1); }
+      for (var i = 0; i < 20; ++i) { v[i] = i+1; }
       return v;
     },
 
-    'is properly initialized': function(intvec) {
-      assert.equal(intvec.toString(), "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
+    'is properly initialized': function(v) {
+      assert.equal(v.toString(), "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
     },
 
     'can be mapped': {
@@ -104,18 +102,17 @@ suite.addBatch({
 
 ["1,2,3", "1", "-15,-17"].forEach(function (str) {
   var batch = {};
-  batch['an intvec initialized with a "' + str + '"'] = {
+  batch['a floatvec initialized with a "' + str + '"'] = {
     topic: function() {
       return new vec.FloatVec(str);
     },
 
-    'returns the same string': function(intvec) {
-      assert.equal(intvec.toString(), str);
+    'returns the same string': function(v) {
+      assert.equal(v.toString(), str);
     },
 
-    'and returns zero for other gets': function(intvec) {
-      assert.equal(intvec.get(1000), 0);
-      assert.equal(intvec.get(-1), 0);
+    'and returns zero for other gets': function(v) {
+      assert.equal(v[1000], 0);
     }
   };
 
@@ -123,15 +120,15 @@ suite.addBatch({
 });
 
 suite.addBatch({
-  'an intvec with [2] = 3': {
+  'a floatvec with [2] = 3': {
     topic: function() {
       var v = new vec.FloatVec();
-      v.set(2, 3);
+      v[2] = 3;
       return v;
     },
 
-    'has string 0,0,3': function(intvec) {
-      assert.equal(intvec.toString(), "0,0,3");
+    'has string 0,0,3': function(v) {
+      assert.equal(v.toString(), "0,0,3");
     }
   }
 });
