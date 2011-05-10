@@ -28,6 +28,9 @@ public:
   static Handle<Value> Set(const Arguments& args);
   static Handle<Value> ToString(const Arguments& args);
 
+  static Handle<Value> Map(const Arguments& args);
+  static Handle<Value> Reduce(const Arguments& args);
+
   // Getter
   static Handle<Value> GetLength(Local<String> property, const AccessorInfo& info);
 

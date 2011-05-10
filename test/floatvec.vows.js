@@ -66,6 +66,42 @@ suite.addBatch({
   }
 });
 
+suite.addBatch({
+  'a floatvec initialized with sequence': {
+    topic: function() {
+      var v = new vec.FloatVec(20);
+      for (var i = 0; i < 20; ++i) { v.set(i, i+1); }
+      return v;
+    },
+
+    'is properly initialized': function(intvec) {
+      assert.equal(intvec.toString(), "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
+    },
+
+    'can be mapped': {
+      topic: function (vec) {
+        return vec.map(function (x) { return x-1; });
+      },
+
+      'to a reduced array': function(result) {
+        for (var i = 0; i < 20; ++i) {
+          assert.equal(result[i], i);
+        }
+      }
+    },
+
+    'can be reduced': {
+      topic: function (vec) {
+        return vec.reduce(0, function (r, x) { return r + x; });
+      },
+
+      'to compute the sum': function (result) {
+        assert.equal(result, 210);
+      }
+    }
+  }
+});
+
 ["1,2,3", "1", "-15,-17"].forEach(function (str) {
   var batch = {};
   batch['an intvec initialized with a "' + str + '"'] = {

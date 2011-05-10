@@ -63,6 +63,42 @@ suite.addBatch({
   }
 });
 
+suite.addBatch({
+  'a bitvec initialized with sequence': {
+    topic: function() {
+      var v = new vec.BitVec(20);
+      for (var i = 0; i < 20; ++i) { v.set(i, !(i%2)); }
+      return v;
+    },
+
+    'is properly initialized': function(v) {
+      assert.equal(v.toString().substr(0,4), "lll1");
+    },
+
+    'can be mapped': {
+      topic: function (v) {
+        return v.map(function (x) { return !x; });
+      },
+
+      'to a reduced array': function(result) {
+        for (var i = 0; i < 20; ++i) {
+          assert.equal(result[i], !!(i%2));
+        }
+      }
+    },
+
+    'can be reduced': {
+      topic: function (vec) {
+        return vec.reduce(0, function (r, x) { return r | x; });
+      },
+
+      'to compute the sum': function (result) {
+        assert.equal(result, true);
+      }
+    }
+  }
+});
+
 ["1000AFG", "jba87uygb890jhg+/kjAHJGGJHGgsh"].forEach(function (str) {
   var batch = {};
   batch['a bitvec initialized with a ' + str] = {

@@ -184,6 +184,56 @@ IntVec::Set(const Arguments& args)
   return scope.Close(Integer::New(b));
 }
 
+Handle<Value>
+IntVec::Map(const Arguments& args)
+{
+  IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
+
+  if (args.Length() < 1 || !args[0]->IsFunction()) {
+    return ThrowException(Exception::TypeError(String::New("Argument must be a function")));
+  }
+
+  Local<Array> retval = Array::New(hw->length);
+  Local<Function> cb = Local<Function>::Cast(args[0]);
+
+  HandleScope scope;
+  Handle<Object> global = Context::GetCurrent()->Global();
+
+  Local<Value> argv[1];
+  for (int i = 0; i < hw->length; ++i) {
+    argv[0] = Int32::New(hw->vec[i]);
+    retval->Set(i, cb->Call(global, 1, argv));
+  }
+
+  return scope.Close(retval);
+}
+
+Handle<Value>
+IntVec::Reduce(const Arguments& args)
+{
+  IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
+
+  if (args.Length() < 1) {
+    return ThrowException(Exception::TypeError(String::New("Must provide a reduce argument")));
+  } else if (args.Length() < 2 || !args[1]->IsFunction()) {
+    return ThrowException(Exception::TypeError(String::New("Argument must be a function")));
+  }
+
+  Local<Function> cb = Local<Function>::Cast(args[1]);
+
+  HandleScope scope;
+  Handle<Object> global = Context::GetCurrent()->Global();
+
+  Local<Value> argv[2];
+  argv[0] = args[0];
+  for (int i = 0; i < hw->length; ++i) {
+    argv[1] = Int32::New(hw->vec[i]);
+    argv[0] = cb->Call(global, 2, argv);
+  }
+
+  return scope.Close(argv[0]);
+}
+
 void
 IntVec::Init(Handle<Object> target)
 {
@@ -198,6 +248,9 @@ IntVec::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(s_ct, "get", Get);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "set", Set);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "toString", ToString);
+
+  NODE_SET_PROTOTYPE_METHOD(s_ct, "map", Map);
+  NODE_SET_PROTOTYPE_METHOD(s_ct, "reduce", Reduce);
 
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
 
