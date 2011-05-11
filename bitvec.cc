@@ -78,59 +78,95 @@ BitVec::set(uint32_t idx, bool value)
   return value;
 }
 
-const char TRANS[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYX/+";
+const char TRANS[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYX+/";
 
 void
 BitVec::setString(Local<String> str) {
-  int len = str->Utf8Length();
+  uint32_t len = str->Utf8Length();
   char *data = (char *) malloc(len+1);
   str->WriteUtf8(data, len+1);
   //fprintf(stderr, "bitvec: fromString '%s'\n", data);
   const char *p;
-  int i, j;
+  uint32_t i, j;
 
-  extend(len*6);
-  for (i = 0, p = data; p < data+len; ++p) {
+  uint32_t bpc = 6;
+  if (data[0] == '/') {
+    bpc = 6; p = data+1;
+  } else if (data[0] == '0') {
+    if (data[1] == 'x') {
+      bpc = 4; p = data+2;
+    } else if (data[1] == 'b') {
+      bpc = 1; p = data+2;
+    } else {
+      bpc = 3; p = data+1;
+    }
+  } else {
+    ThrowException(Exception::TypeError(String::New("Not a bitvec string")));
+    return;
+  }
+
+  extend((len - (p-data))*bpc);
+  for (i = 0; p < data+len; ++p) {
     const char *t = index(TRANS, *p);
-    if (! t) {
+    if (! t || t-TRANS > 1<<bpc) {
       ThrowException(Exception::TypeError(String::New("Unrecognized bitvec char")));
       return;
     }
     int val = t - TRANS;
     //fprintf(stderr, "bitvec: %d %c => %d\n", i, *p, val);
-    for (j = 0; j < 6; ++j) {
+    for (j = 0; j < bpc; ++j) {
       //fprintf(stderr, "bitvec: %d %02x&%02x => %d\n", i+j, val, (1<<j), val & (1<<j));
       if (val & (1<<j)) { set(i+j, 1); }
     }
-    i += 6;
+    i += bpc;
   }
+
+  //fprintf(stderr, "bitvec: \"%s\" => length %d\n", data, length);
 }
 
 Handle<Value>
 BitVec::ToString(const Arguments& args)
 {
+  uint32_t bits = 6, mask = 077;
+  const char *prefix = "";
+  if (args.Length() >= 1 && args[0]->IsUint32()) {
+    uint32_t base = args[0]->Uint32Value();
+    switch (base) {
+    case 2:  bits = 1; prefix = "0b"; mask = 01; break;
+    case 8:  bits = 3; prefix = "0";  mask = 07; break;
+    case 16: bits = 4; prefix = "0x"; mask = 0xf; break;
+    case 64: bits = 6; prefix = "/";  mask = 077; break;
+    default:
+      return ThrowException(Exception::TypeError(String::New("Base must be 2, 8, 16 or 64")));
+    }
+    //fprintf(stderr, "bitvec: base %d bits %d prefix %s\n", base, bits, prefix);
+  }
+
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
 
-  uint32_t buflen = (hw->length+5)/6;
-  char *buf = (char *) malloc(buflen+1), *p = buf;
-  for (uint32_t i = 0; i < hw->length; i += 6, ++p) {
-    uint32_t w0 = hw->vec[i/32], shft0 = (i%32), mask0 = (0x3f) << shft0;
+  uint32_t buflen = (hw->length+bits)/bits + 4;
+  //fprintf(stderr, "bitvec: length %d buflen %d\n", cpw, hw->length, buflen);
+  char *buf = (char *) malloc(buflen+1), *p;
+  strcpy(buf, prefix); p = index(buf, 0);
+  for (uint32_t i = 0; i < hw->length; i += bits, ++p) {
+    uint32_t w0 = hw->vec[i/32], shft0 = (i%32), mask0 = mask << shft0;
     uint32_t idx0 = (w0&mask0) >> shft0;
-    if (shft0+6 <= 32) {
+    if (shft0+bits <= 32) {
       //fprintf(stderr, "%d: w0 %x|%x idx %d char %c\n", i, w0, mask0, idx0, TRANS[idx0]);
       *p = TRANS[idx0];
     } else {
-      uint32_t w1 = hw->vec[i/32+1], shft1 = (32-shft0), mask1 = (0x3f) >> shft1;
+      uint32_t w1 = hw->vec[i/32+1], shft1 = (32-shft0), mask1 = mask >> shft1;
       idx0 |= (w1&mask1) << shft1;
       //fprintf(stderr, "%d: w0 %x|%x w1 %x|%x idx %d char %c\n", i, w0, mask0, w1, mask1, idx0, TRANS[idx0]);
       *p = TRANS[idx0];
     }
   }
+  //fprintf(stderr, "bitvec: p - buf = %d\n", p-buf);
   *p = 0;
   //fprintf(stderr, "bitvec: str = '%s'\n", buf);
 
   HandleScope scope;
-  Handle<Value> ret = scope.Close(String::New(buf, buflen));
+  Handle<Value> ret = scope.Close(String::New(buf, p-buf));
   free(buf);
   return ret;
 }

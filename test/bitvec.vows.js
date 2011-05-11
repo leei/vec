@@ -99,22 +99,26 @@ suite.addBatch({
   }
 });
 
-["1000AFG", "jba87uygb890jhg+/kjAHJGGJHGgsh"].forEach(function (str) {
-  var batch = {};
-  batch['a bitvec initialized with a ' + str] = {
-    topic: function() {
-      return new vec.BitVec(str);
-    },
+(function (strings) {
+  for (var str in strings) {
+    var batch = {};
+    batch['a bitvec initialized with ' + str] = {
+      topic: function() {
+        return new vec.BitVec(str);
+      },
 
-    'has length >= 6 * string length': function(bitvec) {
-      assert.isTrue(bitvec.length >= str.length*6);
-    },
-
-    'returns the string for toString()': function(bitvec) {
-      assert.equal(bitvec.toString(), str);
+      'returns the string for toString()': function(bitvec) {
+        assert.equal(bitvec.toString(strings[str]), str);
+      }
     }
+    suite.addBatch(batch);
   }
-  suite.addBatch(batch);
+})({
+  "/1000AFG": 64,
+  "/jba87uygb890jhg+/kjAHJGGJHGgsh": 64,
+  "0b111001001000100": 2,
+  "07774543425": 8,
+  "0x765120aff876876786": 16
 });
 
 suite.export(module);
