@@ -1,13 +1,19 @@
 {
   "name": "vec",
   "description": "Compact Typed Vectors",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Lee Iverson <leei@sociologi.ca>",
+  "main": "./build/default/vec",
   "engines": { "node": ">= 0.4.0" },
   "scripts": {
-    "preinstall": "node-waf configure build"
+    "preinstall": "node-waf configure build",
+    "test": "vows test/*.vows.js"
   },
-  "dependencies": {
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/leei/vec.git"
+  },
+  "devDependencies": {
     "vows": ">= 0.5.0"
   }
 }
