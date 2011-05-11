@@ -14,14 +14,14 @@ suite.addBatch({
     },
 
     'and returns false for all gets': function(bitvec) {
-      assert.isFalse(bitvec.get(0));
-      assert.isFalse(bitvec.get(1000));
-      assert.isFalse(bitvec.get(-1));
+      assert.isFalse(bitvec[0]);
+      assert.isFalse(bitvec[1000]);
+      assert.isUndefined(bitvec[-1]);
     },
 
     'on set': {
       topic: function(bitvec) {
-        return bitvec.set(120, true);
+        return bitvec[120] = true;
       },
 
       'returns true': function(val) {
@@ -36,8 +36,8 @@ suite.addBatch({
         },
 
         'intervening values are still false': function(bitvec) {
-          assert.isFalse(bitvec.get(0));
-          assert.isFalse(bitvec.get(119));
+          assert.isFalse(bitvec[0]);
+          assert.isFalse(bitvec[119]);
         }
       }
     }
@@ -56,9 +56,9 @@ suite.addBatch({
     },
 
     'and returns false for all gets': function(bitvec) {
-      assert.isFalse(bitvec.get(0));
-      assert.isFalse(bitvec.get(1000));
-      assert.isFalse(bitvec.get(-1));
+      assert.isFalse(bitvec[0]);
+      assert.isFalse(bitvec[1000]);
+      assert.isUndefined(bitvec[-1]);
     }
   }
 });
@@ -67,7 +67,7 @@ suite.addBatch({
   'a bitvec initialized with sequence': {
     topic: function() {
       var v = new vec.BitVec(20);
-      for (var i = 0; i < 20; ++i) { v.set(i, !(i%2)); }
+      for (var i = 0; i < 20; ++i) { v[i] = !(i%2); }
       return v;
     },
 

@@ -56,14 +56,14 @@ BitVec::GetLength(Local<String> property, const AccessorInfo& info)
 }
 
 uint32_t
-BitVec::get(int idx)
+BitVec::get(uint32_t idx)
 {
   uint32_t word = idx/32, mask = (1) << (idx%32);
   return vec[word] & mask;
 }
 
 uint32_t
-BitVec::set(int idx, bool value)
+BitVec::set(uint32_t idx, bool value)
 {
   if (idx < length || value) {
     uint32_t word = idx/32, mask = (1) << (idx%32);
@@ -111,11 +111,11 @@ BitVec::ToString(const Arguments& args)
 {
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
 
-  int i, buflen = (hw->length+5)/6;
+  uint32_t buflen = (hw->length+5)/6;
   char *buf = (char *) malloc(buflen+1), *p = buf;
-  for (i = 0; i < hw->length; i += 6, ++p) {
+  for (uint32_t i = 0; i < hw->length; i += 6, ++p) {
     uint32_t w0 = hw->vec[i/32], shft0 = (i%32), mask0 = (0x3f) << shft0;
-    int idx0 = (w0&mask0) >> shft0;
+    uint32_t idx0 = (w0&mask0) >> shft0;
     if (shft0+6 <= 32) {
       //fprintf(stderr, "%d: w0 %x|%x idx %d char %c\n", i, w0, mask0, idx0, TRANS[idx0]);
       *p = TRANS[idx0];
@@ -136,8 +136,8 @@ BitVec::ToString(const Arguments& args)
 }
 
 void
-BitVec::extend(int32_t len) {
-  int32_t new_word_len = (len+31)/32;
+BitVec::extend(uint32_t len) {
+  uint32_t new_word_len = (len+31)/32;
   if (new_word_len <= word_len) {
     return;
   }
@@ -154,53 +154,34 @@ BitVec::extend(int32_t len) {
   word_len = new_word_len;
 }
 
-/*
- * Get the value of the bit at [idx] of this vector.  Out of range values,
- * simply return false.
- */
 Handle<Value>
-BitVec::Get(const Arguments& args)
+BitVec::IndexGet(uint32_t idx, const AccessorInfo& info)
 {
-  if (! args[0]->IsInt32()) {
-    return ThrowException(Exception::TypeError(String::New("Bad argument")));
-  }
+  BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
 
-  int32_t idx = args[0]->Int32Value();
-  HandleScope scope;
-  BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
+  uint32_t retval = (idx >= hw->length ? 0 : hw->get(idx));
+  //fprintf(stderr, "intvec: IndexGet(%d) => %d\n", idx, retval);
 
-  if (idx < 0 || idx >= hw->length) {
-    return scope.Close(False());
-  } else {
-    int b = hw->get(idx);
-    return scope.Close(b ? True() : False());
-  }
+  return retval ? True() : False();
 }
-
 
 /*
  * Set the value of the bit at [idx] to this value. Out of range values,
  * extend the array.
  */
 Handle<Value>
-BitVec::Set(const Arguments& args)
+BitVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 {
-  if (! args[0]->IsInt32() || ! args[1]->IsBoolean()) {
-    return ThrowException(Exception::TypeError(String::New("Bad argument")));
-  }
-
-  int32_t idx = args[0]->Int32Value();
-  bool value = args[1]->BooleanValue();
-
   if (idx < 0) {
     return ThrowException(Exception::TypeError(String::New("Bad argument")));
   }
 
-  HandleScope scope;
-  BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
+  BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
 
-  uint32_t b = hw->set(idx, value);
-  return scope.Close(b ? True() : False());
+  //fprintf(stderr, "intvec: IndexSet(%d, %d)\n", idx, value->Int32Value());
+
+  hw->set(idx, value->BooleanValue());
+  return value;
 }
 
 Handle<Value>
@@ -219,7 +200,7 @@ BitVec::Map(const Arguments& args)
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[1];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     argv[0] = *(hw->get(i) ? True() : False());
     retval->Set(i, cb->Call(global, 1, argv));
   }
@@ -245,7 +226,7 @@ BitVec::Reduce(const Arguments& args)
 
   Local<Value> argv[2];
   argv[0] = args[0];
-  for (int i = 0; i < hw->length; ++i) {
+  for (uint32_t i = 0; i < hw->length; ++i) {
     argv[1] = *(hw->get(i) ? True() : False());
     argv[0] = cb->Call(global, 2, argv);
   }
@@ -264,13 +245,12 @@ BitVec::Init(Handle<Object> target)
   s_ct->InstanceTemplate()->SetInternalFieldCount(1);
   s_ct->SetClassName(String::NewSymbol("BitVec"));
 
-  NODE_SET_PROTOTYPE_METHOD(s_ct, "get", Get);
-  NODE_SET_PROTOTYPE_METHOD(s_ct, "set", Set);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "toString", ToString);
 
   NODE_SET_PROTOTYPE_METHOD(s_ct, "map", Map);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "reduce", Reduce);
 
+  s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
 
   target->Set(String::NewSymbol("BitVec"), s_ct->GetFunction());
