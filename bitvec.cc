@@ -253,6 +253,53 @@ BitVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 }
 
 Handle<Value>
+BitVec::ForEach(const Arguments& args)
+{
+  BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
+
+  if (args.Length() < 1 || ! args[0]->IsFunction()) {
+    return ThrowException(Exception::TypeError(String::New("Argument must be a function")));
+  }
+
+  Local<Function> cb = Local<Function>::Cast(args[0]);
+  Handle<Object> global = Context::GetCurrent()->Global();
+
+  Local<Value> argv[2];
+  for (uint32_t i = 0; i < hw->length; ++i) {
+    argv[0] = *(hw->get(i) ? True() : False());
+    argv[1] = Int32::New(i);
+    cb->Call(global, 2, argv);
+  }
+
+  HandleScope scope;
+  return scope.Close(args.This());
+}
+
+Handle<Value>
+BitVec::ForEachTrue(const Arguments& args)
+{
+  BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
+
+  if (args.Length() < 1 || ! args[0]->IsFunction()) {
+    return ThrowException(Exception::TypeError(String::New("Argument must be a function")));
+  }
+
+  Local<Function> cb = Local<Function>::Cast(args[0]);
+  Handle<Object> global = Context::GetCurrent()->Global();
+
+  Local<Value> argv[1];
+  for (uint32_t i = 0; i < hw->length; ++i) {
+    if (hw->get(i)) {
+      argv[0] = Integer::New(i);
+      cb->Call(global, 1, argv);
+    }
+  }
+
+  HandleScope scope;
+  return scope.Close(args.This());
+}
+
+Handle<Value>
 BitVec::Map(const Arguments& args)
 {
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
@@ -317,6 +364,8 @@ BitVec::Init(Handle<Object> target)
 
   NODE_SET_PROTOTYPE_METHOD(s_ct, "map", Map);
   NODE_SET_PROTOTYPE_METHOD(s_ct, "reduce", Reduce);
+  NODE_SET_PROTOTYPE_METHOD(s_ct, "forEach", ForEach);
+  NODE_SET_PROTOTYPE_METHOD(s_ct, "forEachTrue", ForEachTrue);
 
   s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);

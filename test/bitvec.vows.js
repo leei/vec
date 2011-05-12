@@ -75,6 +75,32 @@ suite.addBatch({
       assert.equal(v.toString(), "/lll1");
     },
 
+    'iterated with forEach': {
+      topic: function (v) {
+        var top = this;
+        v.forEach(function (val, i) {
+          top.callback(null, val, i);
+        });
+      },
+
+      'returns all values': function(err, val, i) {
+        assert.equal(val, !(i%2));
+      }
+    },
+
+    'iterated with forEachTrue': {
+      topic: function (v) {
+        var top = this;
+        v.forEachTrue(function (i) {
+          top.callback(null, i);
+        });
+      },
+
+      'returns all true values': function(err, i) {
+        assert.isTrue(!(i%2));
+      }
+    },
+
     'can be mapped': {
       topic: function (v) {
         return v.map(function (x) { return !x; });

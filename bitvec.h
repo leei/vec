@@ -27,6 +27,8 @@ class BitVec: ObjectWrap
   static Handle<Value> New(const Arguments& args);
   static Handle<Value> ToString(const Arguments& args);
 
+  static Handle<Value> ForEach(const Arguments& args);
+  static Handle<Value> ForEachTrue(const Arguments& args);
   static Handle<Value> Map(const Arguments& args);
   static Handle<Value> Reduce(const Arguments& args);
 
