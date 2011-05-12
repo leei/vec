@@ -71,8 +71,20 @@ suite.addBatch({
       return v;
     },
 
-    'is properly initialized': function(v) {
-      assert.equal(v.toString(), "/lll1");
+    'is represented base 64': function(v) {
+      assert.equal(v.toString(64), "/lll1");
+    },
+
+    'is represented base 16': function(v) {
+      assert.equal(v.toString(16), "0x55555");
+    },
+
+    'is represented base 8': function(v) {
+      assert.equal(v.toString(8), "05252521");
+    },
+
+    'is represented base 2': function(v) {
+      assert.equal(v.toString(2), "0b10101010101010101010");
     },
 
     'iterated with forEach': {
@@ -121,7 +133,30 @@ suite.addBatch({
       'to compute the sum': function (result) {
         assert.equal(result, true);
       }
+    }/*,
+
+    'has JSON': {
+      topic: function(vec) {
+        return vec.JSON;
+      },
+
+      'that begins with BitVec[': function(json) {
+        assert.equal(json.substr(0,7), "BitVec[");
+      },
+
+      'that reads back': {
+        topic: function(json, v) {
+          return new vec.BitVec(json);
+        },
+
+        'without change': function (restore) {
+          var topics = this.topics;
+          console.warn("bitvec: topics " + util.inspect(topics));
+          assert.isTrue(true);
+        }
+      }
     }
+     */
   }
 });
 
@@ -135,6 +170,12 @@ suite.addBatch({
 
       'returns the string for toString()': function(bitvec) {
         assert.equal(bitvec.toString(strings[str]), str);
+      },
+
+      'returns a framed string for JSON': function(bitvec) {
+        var json = bitvec.JSON;
+        assert.equal(bitvec.JSON.substr(0,7), "BitVec[");
+        assert.equal(bitvec.JSON.substr(-1), "]");
       }
     }
     suite.addBatch(batch);

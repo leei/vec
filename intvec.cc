@@ -40,7 +40,9 @@ IntVec::New(const Arguments& args)
       }
       hw->extend(len);
     } else if (args[0]->IsString()) {
-      hw->setString(Local<String>::Cast(args[0]));
+      if (hw->setString(Local<String>::Cast(args[0])) < 0) {
+        return ThrowException(Exception::TypeError(String::New("Invalid IntVec string")));
+      }
     } else {
       return ThrowException(Exception::TypeError(String::New("Bad argument")));
     }
@@ -61,15 +63,10 @@ IntVec::GetLength(Local<String> property, const AccessorInfo& info)
 Handle<Value>
 IntVec::GetJSON(Local<String> property, const AccessorInfo& info)
 {
-  static Handle<String> prefix = String::New("IntVec:");
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(info.This());
-  Handle<Value> json = hw->toString();
-  if (! json->IsString()) {
-    return ThrowException(json);
-  }
 
   HandleScope scope;
-  return scope.Close(String::Concat(prefix, json->ToString()));
+  return scope.Close(hw->toString(true));
 }
 
 int32_t
@@ -89,33 +86,38 @@ IntVec::set(uint32_t idx, int32_t value)
   return value;
 }
 
-void
+int
 IntVec::setString(Local<String> str) {
   int len = str->Utf8Length();
-  char *data = (char *) malloc(len+1), *p, *q;
+  char *data = (char *) malloc(len+1);
   str->WriteUtf8(data, len+1);
 
+  const char *start = data, *p, *q;
+  if (strncmp(start, "IntVec[", 7) == 0) { start += 7; }
+
   int i = 0;
-  for (p = data; p; ++i, p = index(p+1, ',')) {}
+  for (p = start; p; ++i, p = index(p+1, ',')) {}
   //fprintf(stderr, "intvec: setString len %d\n", i);
   extend(i);
 
   int v;
-  for (i = 0, p = data; (q = index(p, ',')); ++i, p = q+1) {
-    sscanf(p, "%d", &v);
+  for (i = 0, p = start; (q = index(p, ',')); ++i, p = q+1) {
+    if (sscanf(p, "%d", &v) < 1) { return -1; }
     set(i, v);
   }
-  sscanf(p, "%d", &v);
+  if (sscanf(p, "%d", &v) < 1) { return -1; }
   set(i, v);
 
   free(data);
+  return length;
 }
 
 Handle<Value>
-IntVec::toString()
+IntVec::toString(bool json)
 {
-  Local<String> rep = String::New(""), sep = String::NewSymbol(",");
+  Local<String> sep = String::NewSymbol(",");
 
+  Local<String> rep = json ? String::New("IntVec[") : String::New("");
   char buffer[16];
   for (uint32_t i = 0; i < length; ++i) {
     int32_t val = vec[i];
@@ -124,6 +126,7 @@ IntVec::toString()
     rep = String::Concat(rep, String::New(buffer));
   }
 
+  if (json) { rep = String::Concat(rep, String::New("]")); }
   return rep;
 }
 
@@ -283,7 +286,7 @@ IntVec::Init(Handle<Object> target)
   s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
 
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
-  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("toJSON"), GetJSON);
+  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("JSON"), GetJSON);
 
   target->Set(String::NewSymbol("IntVec"), s_ct->GetFunction());
 }

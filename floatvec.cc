@@ -40,7 +40,10 @@ FloatVec::New(const Arguments& args)
       }
       hw->extend(len);
     } else if (args[0]->IsString()) {
-      hw->setString(Local<String>::Cast(args[0]));
+      //fprintf(stderr, "floatvec: new from string\n");
+      if (hw->setString(Local<String>::Cast(args[0])) < 0) {
+        return ThrowException(Exception::TypeError(String::New("Invalid FloatVec string")));
+      }
     } else {
       return ThrowException(Exception::TypeError(String::New("Bad argument")));
     }
@@ -61,15 +64,10 @@ FloatVec::GetLength(Local<String> property, const AccessorInfo& info)
 Handle<Value>
 FloatVec::GetJSON(Local<String> property, const AccessorInfo& info)
 {
-  static Handle<String> prefix = String::New("FloatVec:");
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(info.This());
-  Handle<Value> json = hw->toString();
-  if (! json->IsString()) {
-    return ThrowException(json);
-  }
 
   HandleScope scope;
-  return scope.Close(String::Concat(prefix, json->ToString()));
+  return scope.Close(hw->toString(true));
 }
 
 float
@@ -89,26 +87,31 @@ FloatVec::set(uint32_t idx, float value)
   return value;
 }
 
-void
+int
 FloatVec::setString(Local<String> str) {
   int len = str->Utf8Length();
-  char *data = (char *) malloc(len+1), *p, *q;
+  char *data = (char *) malloc(len+1);
   str->WriteUtf8(data, len+1);
 
+  //fprintf(stderr, "floatvec: setString %s\n", data);
+  const char *start = data, *p, *q;
+  if (strncmp(start, "FloatVec[", 9) == 0) { start += 9; }
+
   int i = 0;
-  for (p = data; p; ++i, p = index(p+1, ',')) {}
+  for (p = start; p; ++i, p = index(p+1, ',')) {}
   //fprintf(stderr, "floatvec: setString len %d\n", i);
   extend(i);
 
   float v;
-  for (i = 0, p = data; (q = index(p, ',')); ++i, p = q+1) {
-    sscanf(p, "%f", &v);
+  for (i = 0, p = start; (q = index(p, ',')); ++i, p = q+1) {
+    if (sscanf(p, "%f", &v) < 1) { return -1; }
     set(i, v);
   }
-  sscanf(p, "%f", &v);
+  if (sscanf(p, "%f", &v) < 1) { return -1; }
   set(i, v);
 
   free(data);
+  return length;
 }
 
 Handle<Value>
@@ -121,9 +124,10 @@ FloatVec::ToString(const Arguments& args)
 }
 
 Handle<Value>
-FloatVec::toString()
+FloatVec::toString(bool json)
 {
-  Local<String> rep = String::New(""), sep = String::NewSymbol(",");
+  Local<String> sep = String::NewSymbol(",");
+  Local<String> rep = json ? String::New("FloatVec[") : String::New("");
 
   char buffer[16];
   for (uint32_t i = 0; i < length; ++i) {
@@ -132,7 +136,7 @@ FloatVec::toString()
     sprintf(buffer, "%g", val);
     rep = String::Concat(rep, String::New(buffer));
   }
-
+  if (json) { rep = String::Concat(rep, String::New("]")); }
   return rep;
 }
 
@@ -282,7 +286,7 @@ FloatVec::Init(Handle<Object> target)
 
   s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
-  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("toJSON"), GetJSON);
+  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("JSON"), GetJSON);
 
   target->Set(String::NewSymbol("FloatVec"), s_ct->GetFunction());
 }

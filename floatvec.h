@@ -41,6 +41,6 @@ public:
   float get(uint32_t idx);
   float set(uint32_t idx, float v);
   void extend(uint32_t len);
-  void setString(Local<String> str);
-  Handle<Value> toString();
+  int setString(Local<String> str);
+  Handle<Value> toString(bool json = false);
 };

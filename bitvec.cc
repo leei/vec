@@ -37,9 +37,8 @@ BitVec::New(const Arguments& args)
       }
       hw->extend(len);
     } else if (args[0]->IsString()) {
-      Handle<Value> val = hw->setString(Local<String>::Cast(args[0]));
-      if (val != True()) {
-        return ThrowException(val);
+      if (hw->setString(Local<String>::Cast(args[0])) < 0) {
+        return ThrowException(Exception::TypeError(String::New("Invalid BitVec string")));
       }
     } else {
       return ThrowException(Exception::TypeError(String::New("Bad argument")));
@@ -61,15 +60,10 @@ BitVec::GetLength(Local<String> property, const AccessorInfo& info)
 Handle<Value>
 BitVec::GetJSON(Local<String> property, const AccessorInfo& info)
 {
-  static Handle<String> prefix = String::New("BitVec:");
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
-  Handle<Value> json = hw->toString(64);
-  if (! json->IsString()) {
-    return ThrowException(json);
-  }
 
   HandleScope scope;
-  return scope.Close(String::Concat(prefix, json->ToString()));
+  return scope.Close(hw->toString(64, true));
 }
 
 uint32_t
@@ -97,14 +91,18 @@ BitVec::set(uint32_t idx, bool value)
 
 const char TRANS[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYX+/";
 
-Handle<Value>
+int
 BitVec::setString(Local<String> str) {
   uint32_t len = str->Utf8Length();
-  char *data = (char *) malloc(len+1);
-  str->WriteUtf8(data, len+1);
-  //fprintf(stderr, "bitvec: fromString '%s'\n", data);
-  const char *p;
+  char *buf = (char *) malloc(len+1);
+  str->WriteUtf8(buf, len+1);
+  //fprintf(stderr, "bitvec: fromString '%s'\n", buf);
+
+  const char *data = buf, *p;
   uint32_t i, j;
+
+  if (strncmp(data, "BitVec[", 7) == 0) { data += 7; }
+  //fprintf(stderr, "bitvec: fromString '%s'\n", data);
 
   uint32_t bpc = 6;
   if (data[0] == '/') {
@@ -118,14 +116,17 @@ BitVec::setString(Local<String> str) {
       bpc = 3; p = data+1;
     }
   } else {
-    return Exception::TypeError(String::New("Not a bitvec string"));
+    //fprintf(stderr, "bitvec: bad prefix '%s'\n", data);
+    return -1;
   }
 
   extend((len - (p-data))*bpc);
   for (i = 0; p < data+len; ++p) {
+    if (*p == ']') { break; }
     const char *t = index(TRANS, *p);
     if (! t || t-TRANS > 1<<bpc) {
-      return Exception::TypeError(String::New("Unrecognized bitvec char"));
+      //fprintf(stderr, "bitvec: bad char '%c'\n", *p);
+      return -1;
     }
     int val = t - TRANS;
     //fprintf(stderr, "bitvec: %d %c => %d\n", i, *p, val);
@@ -137,7 +138,7 @@ BitVec::setString(Local<String> str) {
   }
 
   //fprintf(stderr, "bitvec: \"%s\" => length %d\n", data, length);
-  return True();
+  return length;
 }
 
 Handle<Value>
@@ -161,7 +162,7 @@ BitVec::ToString(const Arguments& args)
 }
 
 Handle<Value>
-BitVec::toString(uint32_t base)
+BitVec::toString(uint32_t base, bool json)
 {
   uint32_t bits = 6, mask = 077;
   const char *prefix = "";
@@ -176,10 +177,13 @@ BitVec::toString(uint32_t base)
   }
   //fprintf(stderr, "bitvec: base %d bits %d prefix %s\n", base, bits, prefix);
 
-  uint32_t buflen = (length+bits)/bits + 4;
-  //fprintf(stderr, "bitvec: length %d buflen %d\n", cpw, length, buflen);
+  uint32_t buflen = (length+bits)/bits + 2 + (json ? 8 : 0);
+  //fprintf(stderr, "bitvec: length %d buflen %d\n", length, buflen);
   char *buf = (char *) malloc(buflen+1), *p;
-  strcpy(buf, prefix); p = index(buf, 0);
+  buf[0] = '\0';
+  if (json) { strcpy(buf, "BitVec["); }
+  strcat(buf, prefix); p = index(buf, 0);
+  //fprintf(stderr, "bitvec: len %d start %s\n", p-buf, buf);
   for (uint32_t i = 0; i < length; i += bits, ++p) {
     uint32_t w0 = vec[i/32], shft0 = (i%32), mask0 = mask << shft0;
     uint32_t idx0 = (w0&mask0) >> shft0;
@@ -193,8 +197,9 @@ BitVec::toString(uint32_t base)
       *p = TRANS[idx0];
     }
   }
+  if (json) { *p++ = ']'; }
+  //*p = 0;
   //fprintf(stderr, "bitvec: p - buf = %d\n", p-buf);
-  *p = 0;
   //fprintf(stderr, "bitvec: str = '%s'\n", buf);
 
   HandleScope scope;
@@ -368,8 +373,9 @@ BitVec::Init(Handle<Object> target)
   NODE_SET_PROTOTYPE_METHOD(s_ct, "forEachTrue", ForEachTrue);
 
   s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
+
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
-  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("toJSON"), GetJSON);
+  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("JSON"), GetJSON);
 
   target->Set(String::NewSymbol("BitVec"), s_ct->GetFunction());
 }

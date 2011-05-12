@@ -76,6 +76,19 @@ suite.addBatch({
       assert.equal(v.toString(), "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
     },
 
+    'iterated with forEach': {
+      topic: function (v) {
+        var top = this;
+        v.forEach(function (val, i) {
+          top.callback(null, val, i);
+        });
+      },
+
+      'returns all values': function(err, val, i) {
+        assert.equal(val, i+1);
+      }
+    },
+
     'can be mapped': {
       topic: function (vec) {
         return vec.map(function (x) { return x-1; });
@@ -96,6 +109,17 @@ suite.addBatch({
       'to compute the sum': function (result) {
         assert.equal(result, 210);
       }
+    },
+
+    'has JSON': {
+      topic: function(vec) {
+        return vec.JSON;
+      },
+
+      'that\'s framed with FloatVec[]': function(json) {
+        assert.equal(json.substr(0,9), "FloatVec[");
+        assert.equal(json.substr(-1), "]");
+      }
     }
   }
 });
@@ -109,6 +133,10 @@ suite.addBatch({
 
     'returns the same string': function(v) {
       assert.equal(v.toString(), str);
+    },
+
+    'returns a framed JSON string': function(v) {
+      assert.equal(v.JSON, "FloatVec[" + str + "]");
     },
 
     'and returns zero for other gets': function(v) {

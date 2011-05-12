@@ -44,6 +44,6 @@ class BitVec: ObjectWrap
   uint32_t get(uint32_t idx);
   uint32_t set(uint32_t idx, bool v);
   void extend(uint32_t len);
-  Handle<Value> setString(Local<String> str);
-  Handle<Value> toString(uint32_t base);
+  int setString(Local<String> str);
+  Handle<Value> toString(uint32_t base, bool json = false);
 };

@@ -96,6 +96,17 @@ suite.addBatch({
       'to compute the sum': function (result) {
         assert.equal(result, 210);
       }
+    },
+
+    'has JSON': {
+      topic: function(vec) {
+        return vec.JSON;
+      },
+
+      'that\'s properly framed': function(json) {
+        assert.equal(json.substr(0,7), "IntVec[");
+        assert.equal(json.substr(-1), "]");
+      }
     }
   }
 });
@@ -110,6 +121,10 @@ suite.addBatch({
 
     'returns the same string': function(intvec) {
       assert.equal(intvec.toString(), str);
+    },
+
+    'returns the framed JSON string': function(intvec) {
+      assert.equal(intvec.JSON, "IntVec[" + str + "]");
     },
 
     'and returns zero for other gets': function(intvec) {
