@@ -31,6 +31,7 @@ public:
 
   // Getter
   static Handle<Value> GetLength(Local<String> property, const AccessorInfo& info);
+  static Handle<Value> GetJSON(Local<String> property, const AccessorInfo& info);
 
   static Handle<Value> IndexGet(uint32_t idx, const AccessorInfo& info);
   static Handle<Value> IndexSet(uint32_t idx, Local<Value> val, const AccessorInfo& info);
@@ -40,4 +41,5 @@ public:
   float set(uint32_t idx, float v);
   void extend(uint32_t len);
   void setString(Local<String> str);
+  Handle<Value> toString();
 };

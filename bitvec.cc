@@ -37,7 +37,10 @@ BitVec::New(const Arguments& args)
       }
       hw->extend(len);
     } else if (args[0]->IsString()) {
-      hw->setString(Local<String>::Cast(args[0]));
+      Handle<Value> val = hw->setString(Local<String>::Cast(args[0]));
+      if (val != True()) {
+        return ThrowException(val);
+      }
     } else {
       return ThrowException(Exception::TypeError(String::New("Bad argument")));
     }
@@ -53,6 +56,20 @@ BitVec::GetLength(Local<String> property, const AccessorInfo& info)
   HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
   return scope.Close(Integer::New(hw->length));
+}
+
+Handle<Value>
+BitVec::GetJSON(Local<String> property, const AccessorInfo& info)
+{
+  static Handle<String> prefix = String::New("BitVec:");
+  BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
+  Handle<Value> json = hw->toString(64);
+  if (! json->IsString()) {
+    return ThrowException(json);
+  }
+
+  HandleScope scope;
+  return scope.Close(String::Concat(prefix, json->ToString()));
 }
 
 uint32_t
@@ -80,7 +97,7 @@ BitVec::set(uint32_t idx, bool value)
 
 const char TRANS[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYX+/";
 
-void
+Handle<Value>
 BitVec::setString(Local<String> str) {
   uint32_t len = str->Utf8Length();
   char *data = (char *) malloc(len+1);
@@ -101,16 +118,14 @@ BitVec::setString(Local<String> str) {
       bpc = 3; p = data+1;
     }
   } else {
-    ThrowException(Exception::TypeError(String::New("Not a bitvec string")));
-    return;
+    return Exception::TypeError(String::New("Not a bitvec string"));
   }
 
   extend((len - (p-data))*bpc);
   for (i = 0; p < data+len; ++p) {
     const char *t = index(TRANS, *p);
     if (! t || t-TRANS > 1<<bpc) {
-      ThrowException(Exception::TypeError(String::New("Unrecognized bitvec char")));
-      return;
+      return Exception::TypeError(String::New("Unrecognized bitvec char"));
     }
     int val = t - TRANS;
     //fprintf(stderr, "bitvec: %d %c => %d\n", i, *p, val);
@@ -122,40 +137,57 @@ BitVec::setString(Local<String> str) {
   }
 
   //fprintf(stderr, "bitvec: \"%s\" => length %d\n", data, length);
+  return True();
 }
 
 Handle<Value>
 BitVec::ToString(const Arguments& args)
 {
-  uint32_t bits = 6, mask = 077;
-  const char *prefix = "";
-  if (args.Length() >= 1 && args[0]->IsUint32()) {
-    uint32_t base = args[0]->Uint32Value();
-    switch (base) {
-    case 2:  bits = 1; prefix = "0b"; mask = 01; break;
-    case 8:  bits = 3; prefix = "0";  mask = 07; break;
-    case 16: bits = 4; prefix = "0x"; mask = 0xf; break;
-    case 64: bits = 6; prefix = "/";  mask = 077; break;
-    default:
+  uint32_t base = 64;
+  if (args.Length() >= 1) {
+    if (args[0]->IsUint32()) {
+      base = args[0]->Uint32Value();
+    } else {
       return ThrowException(Exception::TypeError(String::New("Base must be 2, 8, 16 or 64")));
     }
-    //fprintf(stderr, "bitvec: base %d bits %d prefix %s\n", base, bits, prefix);
   }
 
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
+  Handle<Value> str = hw->toString(base);
+  if (! str->IsString()) { return ThrowException(str); }
 
-  uint32_t buflen = (hw->length+bits)/bits + 4;
-  //fprintf(stderr, "bitvec: length %d buflen %d\n", cpw, hw->length, buflen);
+  HandleScope scope;
+  return scope.Close(str);
+}
+
+Handle<Value>
+BitVec::toString(uint32_t base)
+{
+  uint32_t bits = 6, mask = 077;
+  const char *prefix = "";
+
+  switch (base) {
+  case 2:  bits = 1; prefix = "0b"; mask = 01; break;
+  case 8:  bits = 3; prefix = "0";  mask = 07; break;
+  case 16: bits = 4; prefix = "0x"; mask = 0xf; break;
+  case 64: bits = 6; prefix = "/";  mask = 077; break;
+  default:
+    return Exception::TypeError(String::New("Base must be 2, 8, 16 or 64"));
+  }
+  //fprintf(stderr, "bitvec: base %d bits %d prefix %s\n", base, bits, prefix);
+
+  uint32_t buflen = (length+bits)/bits + 4;
+  //fprintf(stderr, "bitvec: length %d buflen %d\n", cpw, length, buflen);
   char *buf = (char *) malloc(buflen+1), *p;
   strcpy(buf, prefix); p = index(buf, 0);
-  for (uint32_t i = 0; i < hw->length; i += bits, ++p) {
-    uint32_t w0 = hw->vec[i/32], shft0 = (i%32), mask0 = mask << shft0;
+  for (uint32_t i = 0; i < length; i += bits, ++p) {
+    uint32_t w0 = vec[i/32], shft0 = (i%32), mask0 = mask << shft0;
     uint32_t idx0 = (w0&mask0) >> shft0;
     if (shft0+bits <= 32) {
       //fprintf(stderr, "%d: w0 %x|%x idx %d char %c\n", i, w0, mask0, idx0, TRANS[idx0]);
       *p = TRANS[idx0];
     } else {
-      uint32_t w1 = hw->vec[i/32+1], shft1 = (32-shft0), mask1 = mask >> shft1;
+      uint32_t w1 = vec[i/32+1], shft1 = (32-shft0), mask1 = mask >> shft1;
       idx0 |= (w1&mask1) << shft1;
       //fprintf(stderr, "%d: w0 %x|%x w1 %x|%x idx %d char %c\n", i, w0, mask0, w1, mask1, idx0, TRANS[idx0]);
       *p = TRANS[idx0];
@@ -166,7 +198,7 @@ BitVec::ToString(const Arguments& args)
   //fprintf(stderr, "bitvec: str = '%s'\n", buf);
 
   HandleScope scope;
-  Handle<Value> ret = scope.Close(String::New(buf, p-buf));
+  Local<String> ret = String::New(buf, p-buf);
   free(buf);
   return ret;
 }
@@ -288,6 +320,7 @@ BitVec::Init(Handle<Object> target)
 
   s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
+  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("toJSON"), GetJSON);
 
   target->Set(String::NewSymbol("BitVec"), s_ct->GetFunction());
 }

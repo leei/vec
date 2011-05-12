@@ -30,9 +30,11 @@ class BitVec: ObjectWrap
   static Handle<Value> Map(const Arguments& args);
   static Handle<Value> Reduce(const Arguments& args);
 
-  // Getter
+  // Getters
   static Handle<Value> GetLength(Local<String> property, const AccessorInfo& info);
+  static Handle<Value> GetJSON(Local<String> property, const AccessorInfo& info);
 
+  // Index Getters
   static Handle<Value> IndexGet(uint32_t idx, const AccessorInfo& info);
   static Handle<Value> IndexSet(uint32_t idx, Local<Value> val, const AccessorInfo& info);
 
@@ -40,5 +42,6 @@ class BitVec: ObjectWrap
   uint32_t get(uint32_t idx);
   uint32_t set(uint32_t idx, bool v);
   void extend(uint32_t len);
-  void setString(Local<String> str);
+  Handle<Value> setString(Local<String> str);
+  Handle<Value> toString(uint32_t base);
 };

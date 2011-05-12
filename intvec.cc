@@ -58,6 +58,20 @@ IntVec::GetLength(Local<String> property, const AccessorInfo& info)
   return scope.Close(Integer::New(hw->length));
 }
 
+Handle<Value>
+IntVec::GetJSON(Local<String> property, const AccessorInfo& info)
+{
+  static Handle<String> prefix = String::New("IntVec:");
+  IntVec* hw = ObjectWrap::Unwrap<IntVec>(info.This());
+  Handle<Value> json = hw->toString();
+  if (! json->IsString()) {
+    return ThrowException(json);
+  }
+
+  HandleScope scope;
+  return scope.Close(String::Concat(prefix, json->ToString()));
+}
+
 int32_t
 IntVec::get(int idx)
 {
@@ -98,22 +112,28 @@ IntVec::setString(Local<String> str) {
 }
 
 Handle<Value>
-IntVec::ToString(const Arguments& args)
+IntVec::toString()
 {
-  IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
-
   Local<String> rep = String::New(""), sep = String::NewSymbol(",");
 
   char buffer[16];
-  for (uint32_t i = 0; i < hw->length; ++i) {
-    int32_t val = hw->vec[i];
+  for (uint32_t i = 0; i < length; ++i) {
+    int32_t val = vec[i];
     if (i > 0) { rep = String::Concat(rep, sep); }
     sprintf(buffer, "%d", val);
     rep = String::Concat(rep, String::New(buffer));
   }
 
+  return rep;
+}
+
+Handle<Value>
+IntVec::ToString(const Arguments& args)
+{
+  IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
+
   HandleScope scope;
-  return scope.Close(rep);
+  return scope.Close(hw->toString());
 }
 
 void
@@ -239,6 +259,7 @@ IntVec::Init(Handle<Object> target)
   s_ct->InstanceTemplate()->SetIndexedPropertyHandler(IndexGet, IndexSet);
 
   s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), GetLength);
+  s_ct->InstanceTemplate()->SetAccessor(String::NewSymbol("toJSON"), GetJSON);
 
   target->Set(String::NewSymbol("IntVec"), s_ct->GetFunction());
 }

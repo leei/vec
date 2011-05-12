@@ -72,7 +72,7 @@ suite.addBatch({
     },
 
     'is properly initialized': function(v) {
-      assert.equal(v.toString(), "lll1");
+      assert.equal(v.toString(), "/lll1");
     },
 
     'can be mapped': {
