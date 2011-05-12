@@ -87,6 +87,10 @@ suite.addBatch({
       assert.equal(v.toString(2), "0b10101010101010101010");
     },
 
+    'is represented as JSON': function(v) {
+      assert.equal(v.JSON, "BitVec[/lll1]");
+    },
+
     'iterated with forEach': {
       topic: function (v) {
         var top = this;

@@ -52,18 +52,19 @@ BitVec::New(const Arguments& args)
 Handle<Value>
 BitVec::GetLength(Local<String> property, const AccessorInfo& info)
 {
-  HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
-  return scope.Close(Integer::New(hw->length));
+  return Integer::New(hw->length);
 }
 
 Handle<Value>
 BitVec::GetJSON(Local<String> property, const AccessorInfo& info)
 {
+  HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
 
-  HandleScope scope;
-  return scope.Close(hw->toString(64, true));
+  Handle<Value> str = hw->toString(64, true);
+  if (! str->IsString()) { return ThrowException(str); }
+  return scope.Close(str);
 }
 
 uint32_t
@@ -144,6 +145,7 @@ BitVec::setString(Local<String> str) {
 Handle<Value>
 BitVec::ToString(const Arguments& args)
 {
+  HandleScope scope;
   uint32_t base = 64;
   if (args.Length() >= 1) {
     if (args[0]->IsUint32()) {
@@ -157,13 +159,13 @@ BitVec::ToString(const Arguments& args)
   Handle<Value> str = hw->toString(base);
   if (! str->IsString()) { return ThrowException(str); }
 
-  HandleScope scope;
   return scope.Close(str);
 }
 
 Handle<Value>
 BitVec::toString(uint32_t base, bool json)
 {
+  HandleScope scope;
   uint32_t bits = 6, mask = 077;
   const char *prefix = "";
 
@@ -202,10 +204,9 @@ BitVec::toString(uint32_t base, bool json)
   //fprintf(stderr, "bitvec: p - buf = %d\n", p-buf);
   //fprintf(stderr, "bitvec: str = '%s'\n", buf);
 
-  HandleScope scope;
   Local<String> ret = String::New(buf, p-buf);
   free(buf);
-  return ret;
+  return scope.Close(ret);
 }
 
 void
@@ -260,6 +261,7 @@ BitVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 Handle<Value>
 BitVec::ForEach(const Arguments& args)
 {
+  HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
 
   if (args.Length() < 1 || ! args[0]->IsFunction()) {
@@ -276,13 +278,13 @@ BitVec::ForEach(const Arguments& args)
     cb->Call(global, 2, argv);
   }
 
-  HandleScope scope;
   return scope.Close(args.This());
 }
 
 Handle<Value>
 BitVec::ForEachTrue(const Arguments& args)
 {
+  HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
 
   if (args.Length() < 1 || ! args[0]->IsFunction()) {
@@ -300,13 +302,13 @@ BitVec::ForEachTrue(const Arguments& args)
     }
   }
 
-  HandleScope scope;
   return scope.Close(args.This());
 }
 
 Handle<Value>
 BitVec::Map(const Arguments& args)
 {
+  HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
 
   if (args.Length() < 1 || !args[0]->IsFunction()) {
@@ -316,7 +318,6 @@ BitVec::Map(const Arguments& args)
   Local<Array> retval = Array::New(hw->length);
   Local<Function> cb = Local<Function>::Cast(args[0]);
 
-  HandleScope scope;
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[1];
@@ -331,6 +332,7 @@ BitVec::Map(const Arguments& args)
 Handle<Value>
 BitVec::Reduce(const Arguments& args)
 {
+  HandleScope scope;
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(args.This());
 
   if (args.Length() < 1) {
@@ -341,7 +343,6 @@ BitVec::Reduce(const Arguments& args)
 
   Local<Function> cb = Local<Function>::Cast(args[1]);
 
-  HandleScope scope;
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[2];

@@ -55,9 +55,8 @@ IntVec::New(const Arguments& args)
 Handle<Value>
 IntVec::GetLength(Local<String> property, const AccessorInfo& info)
 {
-  HandleScope scope;
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(info.This());
-  return scope.Close(Integer::New(hw->length));
+  return Integer::New(hw->length);
 }
 
 Handle<Value>
@@ -65,8 +64,7 @@ IntVec::GetJSON(Local<String> property, const AccessorInfo& info)
 {
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(info.This());
 
-  HandleScope scope;
-  return scope.Close(hw->toString(true));
+  return hw->toString(true);
 }
 
 int32_t
@@ -133,9 +131,9 @@ IntVec::toString(bool json)
 Handle<Value>
 IntVec::ToString(const Arguments& args)
 {
+  HandleScope scope;
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
 
-  HandleScope scope;
   return scope.Close(hw->toString());
 }
 
@@ -196,6 +194,7 @@ IntVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 Handle<Value>
 IntVec::ForEach(const Arguments& args)
 {
+  HandleScope scope;
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
 
   if (args.Length() < 1 || ! args[0]->IsFunction()) {
@@ -212,13 +211,13 @@ IntVec::ForEach(const Arguments& args)
     cb->Call(global, 2, argv);
   }
 
-  HandleScope scope;
   return scope.Close(args.This());
 }
 
 Handle<Value>
 IntVec::Map(const Arguments& args)
 {
+  HandleScope scope;
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
 
   if (args.Length() < 1 || !args[0]->IsFunction()) {
@@ -228,7 +227,6 @@ IntVec::Map(const Arguments& args)
   Local<Array> retval = Array::New(hw->length);
   Local<Function> cb = Local<Function>::Cast(args[0]);
 
-  HandleScope scope;
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[1];
@@ -243,6 +241,7 @@ IntVec::Map(const Arguments& args)
 Handle<Value>
 IntVec::Reduce(const Arguments& args)
 {
+  HandleScope scope;
   IntVec* hw = ObjectWrap::Unwrap<IntVec>(args.This());
 
   if (args.Length() < 1) {
@@ -253,7 +252,6 @@ IntVec::Reduce(const Arguments& args)
 
   Local<Function> cb = Local<Function>::Cast(args[1]);
 
-  HandleScope scope;
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[2];

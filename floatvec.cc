@@ -56,9 +56,8 @@ FloatVec::New(const Arguments& args)
 Handle<Value>
 FloatVec::GetLength(Local<String> property, const AccessorInfo& info)
 {
-  HandleScope scope;
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(info.This());
-  return scope.Close(Integer::New(hw->length));
+  return Integer::New(hw->length);
 }
 
 Handle<Value>
@@ -66,8 +65,7 @@ FloatVec::GetJSON(Local<String> property, const AccessorInfo& info)
 {
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(info.This());
 
-  HandleScope scope;
-  return scope.Close(hw->toString(true));
+  return hw->toString(true);
 }
 
 float
@@ -117,9 +115,9 @@ FloatVec::setString(Local<String> str) {
 Handle<Value>
 FloatVec::ToString(const Arguments& args)
 {
+  HandleScope scope;
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(args.This());
 
-  HandleScope scope;
   return scope.Close(hw->toString());
 }
 
@@ -197,6 +195,7 @@ FloatVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 Handle<Value>
 FloatVec::ForEach(const Arguments& args)
 {
+  HandleScope scope;
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(args.This());
 
   if (args.Length() < 1 || ! args[0]->IsFunction()) {
@@ -213,13 +212,13 @@ FloatVec::ForEach(const Arguments& args)
     cb->Call(global, 2, argv);
   }
 
-  HandleScope scope;
   return scope.Close(args.This());
 }
 
 Handle<Value>
 FloatVec::Map(const Arguments& args)
 {
+  HandleScope scope;
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(args.This());
 
   if (args.Length() < 1 || !args[0]->IsFunction()) {
@@ -229,7 +228,6 @@ FloatVec::Map(const Arguments& args)
   Local<Array> retval = Array::New(hw->length);
   Local<Function> cb = Local<Function>::Cast(args[0]);
 
-  HandleScope scope;
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[1];
@@ -244,6 +242,7 @@ FloatVec::Map(const Arguments& args)
 Handle<Value>
 FloatVec::Reduce(const Arguments& args)
 {
+  HandleScope scope;
   FloatVec* hw = ObjectWrap::Unwrap<FloatVec>(args.This());
 
   if (args.Length() < 1) {
@@ -254,7 +253,6 @@ FloatVec::Reduce(const Arguments& args)
 
   Local<Function> cb = Local<Function>::Cast(args[1]);
 
-  HandleScope scope;
   Handle<Object> global = Context::GetCurrent()->Global();
 
   Local<Value> argv[2];
