@@ -12,6 +12,8 @@
 using namespace node;
 using namespace v8;
 
+#define GROW_TO(x) ((x)*5/4)
+
 #include "floatvec.h"
 
 FloatVec::~FloatVec()

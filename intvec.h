@@ -12,6 +12,7 @@ using namespace v8;
 class IntVec: ObjectWrap
 {
 private:
+  uint32_t buflen;
   uint32_t length;
   int32_t *vec;
 
@@ -19,7 +20,7 @@ public:
 
   static void Init(Handle<Object> target);
 
- IntVec() : length(0), vec(0) {}
+ IntVec() : buflen(0), length(0), vec(0) {}
   ~IntVec();
 
   // Prototype methods.
