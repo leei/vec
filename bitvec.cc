@@ -369,6 +369,12 @@ BitVec::Init(Handle<Object> target)
 
   Local<FunctionTemplate> t = FunctionTemplate::New(New);
 
+  fprintf(stderr, "sizeof(int*) = %lu\n", sizeof(int*));
+  fprintf(stderr, "sizeof(intptr_t) = %lu\n", sizeof(intptr_t));
+  const unsigned long KB = 1024, MB = KB*KB, GB = KB*KB*KB;
+  intptr_t max = 16*GB;
+  fprintf(stderr, "max = %lx\n", max);
+
   s_ct = Persistent<FunctionTemplate>::New(t);
   s_ct->InstanceTemplate()->SetInternalFieldCount(1);
   s_ct->SetClassName(String::NewSymbol("BitVec"));

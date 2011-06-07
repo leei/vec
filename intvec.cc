@@ -17,7 +17,7 @@ using namespace v8;
 IntVec::~IntVec()
 {
   if (vec) {
-    //fprintf(stderr, "intvec: free vec @%p\n", vec);
+    fprintf(stderr, "intvec: free vec @%p\n", vec);
     free(vec);
     V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(int32_t) * buflen);
   }
