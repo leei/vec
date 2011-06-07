@@ -7,7 +7,7 @@
 #include <node.h>
 
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 
 using namespace node;
 using namespace v8;
@@ -19,6 +19,7 @@ IntVec::~IntVec()
   if (vec) {
     //fprintf(stderr, "intvec: free vec @%p\n", vec);
     free(vec);
+    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(int32_t) * buflen);
   }
 }
 
@@ -139,22 +140,28 @@ IntVec::ToString(const Arguments& args)
 
 void
 IntVec::extend(uint32_t len) {
-  if (len < length) {
-    return;
-  } else {
-    if (vec) {
-      vec = (int32_t *) realloc(vec, len * sizeof(int32_t));
-      //fprintf(stderr, "intvec: realloc %d ints @%p\n", len, vec);
-      int32_t prev_len = length;
-      bzero(vec + prev_len, (len - prev_len) * sizeof(int32_t));
-    } else {
-      vec = (int32_t *) calloc(len, sizeof(int32_t));
-      //fprintf(stderr, "intvec: calloc %d ints @%p\n", len, vec);
-    }
+  uint32_t new_buflen = len;
 
-    //fprintf(stderr, "intvec: extend %d -> %d\n", length, word_len*32);
-    length = len;
+  if (new_buflen <= buflen) {
+    return;
+  } else if (new_buflen < 5*buflen/4) {
+    new_buflen = 5*buflen/4;
   }
+
+  if (vec) {
+    vec = (int32_t *) realloc(vec, new_buflen * sizeof(int32_t));
+    //fprintf(stderr, "intvec: realloc %d ints @%p\n", new_buflen, vec);
+    int32_t prev_len = length;
+    bzero(vec + prev_len, (new_buflen - prev_len) * sizeof(int32_t));
+  } else {
+    vec = (int32_t *) calloc(new_buflen, sizeof(int32_t));
+    //fprintf(stderr, "intvec: calloc %d ints @%p\n", len, vec);
+  }
+
+  //fprintf(stderr, "intvec: [%d] extend %d -> %d\n", len, length, new_buflen);
+  V8::AdjustAmountOfExternalAllocatedMemory(sizeof(int32_t) * (new_buflen - buflen));
+  buflen = new_buflen;
+  length = len;
 }
 
 /*

@@ -7,7 +7,7 @@
 #include <node.h>
 
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 
 using namespace node;
 using namespace v8;
@@ -16,7 +16,11 @@ using namespace v8;
 
 BitVec::~BitVec()
 {
-  if (vec) { free(vec); }
+  if (vec) {
+    //fprintf(stderr, "bitvec: free vec @%p\n", vec);
+    free(vec);
+    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(int32_t) * word_len);
+  }
 }
 
 static Persistent<FunctionTemplate> s_ct;
@@ -214,6 +218,8 @@ BitVec::extend(uint32_t len) {
   uint32_t new_word_len = (len+31)/32;
   if (new_word_len <= word_len) {
     return;
+  } else if (new_word_len < 5*word_len/4) {
+    new_word_len = 5*word_len/4;
   }
 
   if (vec) {
@@ -223,7 +229,8 @@ BitVec::extend(uint32_t len) {
     vec = (uint32_t *) calloc(new_word_len, sizeof(uint32_t));
   }
 
-  //fprintf(stderr, "bitvec: extend %d -> %d\n", length, word_len*32);
+  //fprintf(stderr, "bitvec: [%d] extend %d -> %d\n", len, length, new_word_len*32);
+  V8::AdjustAmountOfExternalAllocatedMemory(sizeof(int32_t) * (new_word_len - word_len));
   length = len;
   word_len = new_word_len;
 }
@@ -234,7 +241,7 @@ BitVec::IndexGet(uint32_t idx, const AccessorInfo& info)
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
 
   uint32_t retval = (idx >= hw->length ? 0 : hw->get(idx));
-  //fprintf(stderr, "intvec: IndexGet(%d) => %d\n", idx, retval);
+  //fprintf(stderr, "bitvec: IndexGet(%d) => %d\n", idx, retval);
 
   return retval ? True() : False();
 }
@@ -252,7 +259,7 @@ BitVec::IndexSet(uint32_t idx, Local<Value> value, const AccessorInfo& info)
 
   BitVec* hw = ObjectWrap::Unwrap<BitVec>(info.This());
 
-  //fprintf(stderr, "intvec: IndexSet(%d, %d)\n", idx, value->Int32Value());
+  //fprintf(stderr, "bitvec: IndexSet(%d, %d)\n", idx, value->Int32Value());
 
   hw->set(idx, value->BooleanValue());
   return value;
